@@ -1,0 +1,7 @@
+to build allwpilib:
+
+create a cmakebuild dir
+cmake ../ -DWITHOUT_JAVA=ON -DBUILD_SHARED_LIBS=OFF -DWITHOUT_ALLWPILIB=OFF
+then sudo make install
+
+

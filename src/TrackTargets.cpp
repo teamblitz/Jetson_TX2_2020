@@ -1,6 +1,7 @@
 #include <cscore.h>
 #include <ntcore.h>
 #include <networktables/NetworkTable.h>
+#include <networktables/NetworkTableInstance.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -15,7 +16,7 @@
 using namespace std;
 using namespace cv;
 using namespace grip;
-using namespace llvm;
+using nt::ArrayRef;
 
 // Code conditionals.                   // Defaults
 #define USE_CAMERA_INPUT            1   // 1   0 == Use test video from a file below, 1 == Use an attached video camera.
@@ -227,8 +228,8 @@ int main(__attribute__((unused)) int argc, char** argv)
             rect[2] = bottom;
             rect[3] = right;
 
-            ArrayRef<double> centerArray(center);
-            ArrayRef<double> rectArray(rect);
+	    ArrayRef<double> centerArray = ArrayRef(center);
+	    ArrayRef<double> rectArray = ArrayRef(rect);
             ttTable->PutString("timestamp", std::ctime(&timeStamp));
             ttTable->PutBoolean("tracking", true);
             ttTable->PutNumberArray("center", centerArray);
@@ -240,8 +241,10 @@ int main(__attribute__((unused)) int argc, char** argv)
             cout << "Miss" << endl;
 
             ttTable->PutString("timestamp", std::ctime(&timeStamp));
-            ArrayRef<double> centerArray {0, 0, 0, 0};
-            ArrayRef<double> rectArray {0, 0, 0, 0};
+	    vector<double> center(0, 0.0);
+	    vector<double> rect(0, 0.0);
+	    ArrayRef<double> centerArray = ArrayRef(center);
+	    ArrayRef<double> rectArray = ArrayRef(rect);
             ttTable->PutBoolean("tracking", false);
             ttTable->PutNumberArray("center", centerArray);
             ttTable->PutNumberArray("rect", rectArray);
@@ -301,20 +304,22 @@ int main(__attribute__((unused)) int argc, char** argv)
 
 shared_ptr<NetworkTable> initializeNetworkTables()
 {
+    auto inst = nt::NetworkTableInstance::GetDefault();
+    auto table = inst.GetTable("target_tracking");
     // Connect NetworkTables and get access to the tracking table.
     NetworkTable::SetClientMode();
-    NetworkTable::SetTeam(2083);
+    inst.StartClientTeam(2083);
     
 #if NON_ROBOT_NETWORK_TABLES
     // Change this address to the dynamically-generated
     // TCP/IP address of the computer (not roboRIO) that
-    // is running a NetworkTables intance in server mode.
+    // is running as intance in server mode.
     NetworkTable::SetIPAddress(OUTLINE_VIEWER_IP_ADDRESS);
 #endif
 
-    NetworkTable::Initialize();
+    NetworkTable::Initialize(); 
 
-    return NetworkTable::GetTable("target_tracking");
+    return table;
 }
 
 void runContourDetectionPipeline(Mat const& frame,
